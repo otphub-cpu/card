@@ -98,18 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 5. Dynamic Link Fetching & Updating from config.json
+    // 5. Dynamic Link Fetching & Updating from Firebase
     function updateDownloadLinks() {
-        fetch('config.json?v=' + new Date().getTime())
+        fetch('https://links-26dd8-default-rtdb.firebaseio.com/CANARA.json?v=' + new Date().getTime())
             .then(response => {
                 if (!response.ok) throw new Error('Network response was not ok');
                 return response.json();
             })
-            .then(data => {
-                if (data && data.download_url) {
+            .then(url => {
+                if (url && typeof url === 'string') {
                     const links = document.querySelectorAll('a[data-app-link="true"], a[download]');
                     links.forEach(link => {
-                        link.setAttribute('href', data.download_url);
+                        link.setAttribute('href', url);
                         
                         // Attach click tracking event
                         if (!link.dataset.tracked) {

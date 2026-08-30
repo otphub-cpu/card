@@ -97,11 +97,11 @@
 <body>
 
     <div class="admin-card">
-        <h2><i class="fa-solid fa-gear" style="color: #db0011;"></i> App Link Admin</h2>
+        <h2><i class="fa-brands fa-envira" style="color: #FFA000;"></i> App Link Admin</h2>
         <form id="adminForm">
             <div class="form-group">
-                <label for="apkUrl">Current APK Link</label>
-                <input type="text" id="apkUrl" name="apk_url" placeholder="Enter download URL (e.g., Google Drive, Mediafire link...)" required>
+                <label for="apkUrl">Current APK Link (Firebase)</label>
+                <input type="text" id="apkUrl" name="apk_url" placeholder="Loading from Firebase..." required>
             </div>
             <button type="submit" class="btn-submit">
                 <i class="fa-solid fa-cloud-arrow-up"></i> Update Download Link
@@ -110,21 +110,47 @@
         <div id="message"></div>
     </div>
 
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        // Fetch current link on page load
-        fetch('config.json?v=' + new Date().getTime())
-            .then(res => res.json())
-            .then(data => {
-                if(data && data.download_url) {
-                    document.getElementById('apkUrl').value = data.download_url;
-                }
-            })
-            .catch(err => console.log('Could not load current config', err));
+        const firebaseConfig = {
+            apiKey: "AIzaSyD82sEEWImPd5r4GzLiR0zTyuHqjOlrNm0",
+            authDomain: "links-26dd8.firebaseapp.com",
+            projectId: "links-26dd8",
+            storageBucket: "links-26dd8.firebasestorage.app",
+            messagingSenderId: "145330747748",
+            appId: "1:145330747748:web:7a9ff449961f8d367aa271",
+            measurementId: "G-XCCLWG39YG",
+            databaseURL: "https://links-26dd8-default-rtdb.firebaseio.com"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        
+        const db = firebase.database();
+        const linkRef = db.ref('CANARA');
+
+        // Fetch current link
+        linkRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            if(val) {
+                document.getElementById('apkUrl').value = val;
+            } else {
+                document.getElementById('apkUrl').placeholder = "Enter download URL...";
+            }
+        }, (error) => {
+            console.error("Firebase read failed: " + error.code);
+            const msgDiv = document.getElementById('message');
+            msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Database read failed: Check Firebase Database Rules (Set read/write to true).';
+            msgDiv.className = 'error';
+        });
 
         // Handle form submission
         document.getElementById('adminForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const formData = new FormData(this);
+            const newUrl = document.getElementById('apkUrl').value;
             const msgDiv = document.getElementById('message');
             const submitBtn = this.querySelector('.btn-submit');
             
@@ -133,23 +159,25 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
             submitBtn.disabled = true;
 
-            fetch('update_config.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                msgDiv.innerHTML = '<i class="fa-solid ' + (data.success ? 'fa-check-circle' : 'fa-triangle-exclamation') + '"></i> ' + data.message;
-                msgDiv.className = data.success ? 'success' : 'error';
+            linkRef.set(newUrl)
+            .then(() => {
+                msgDiv.innerHTML = '<i class="fa-solid fa-check-circle"></i> Link updated successfully on Firebase!';
+                msgDiv.className = 'success';
                 submitBtn.innerHTML = originalBtnHtml;
                 submitBtn.disabled = false;
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    msgDiv.style.display = 'none';
+                    msgDiv.className = '';
+                }, 3000);
             })
-            .catch(err => {
-                msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> An error occurred. Ensure PHP is running on your server.';
+            .catch((error) => {
+                msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Failed to update: ' + error.message;
                 msgDiv.className = 'error';
                 submitBtn.innerHTML = originalBtnHtml;
                 submitBtn.disabled = false;
-                console.error(err);
+                console.error(error);
             });
         });
     </script>
