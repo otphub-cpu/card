@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Update APK Link</title>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .admin-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background-color: #db0011; /* Matching primary color from site */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+        .btn-submit:hover {
+            background-color: #b5000e;
+        }
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        #message {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+        .success { 
+            display: block !important;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error { 
+            display: block !important;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-card">
+        <h2><i class="fa-solid fa-gear" style="color: #db0011;"></i> App Link Admin</h2>
+        <form id="adminForm">
+            <div class="form-group">
+                <label for="apkUrl">Current APK Link</label>
+                <input type="text" id="apkUrl" name="apk_url" placeholder="Enter download URL (e.g., Google Drive, Mediafire link...)" required>
+            </div>
+            <button type="submit" class="btn-submit">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Update Download Link
+            </button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // Fetch current link on page load
+        fetch('config.json?v=' + new Date().getTime())
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.download_url) {
+                    document.getElementById('apkUrl').value = data.download_url;
+                }
+            })
+            .catch(err => console.log('Could not load current config', err));
+
+        // Handle form submission
+        document.getElementById('adminForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const msgDiv = document.getElementById('message');
+            const submitBtn = this.querySelector('.btn-submit');
+            
+            // UI feedback
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+            submitBtn.disabled = true;
+
+            fetch('update_config.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                msgDiv.innerHTML = '<i class="fa-solid ' + (data.success ? 'fa-check-circle' : 'fa-triangle-exclamation') + '"></i> ' + data.message;
+                msgDiv.className = data.success ? 'success' : 'error';
+                submitBtn.innerHTML = originalBtnHtml;
+                submitBtn.disabled = false;
+            })
+            .catch(err => {
+                msgDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> An error occurred. Ensure PHP is running on your server.';
+                msgDiv.className = 'error';
+                submitBtn.innerHTML = originalBtnHtml;
+                submitBtn.disabled = false;
+                console.error(err);
+            });
+        });
+    </script>
+</body>
+</html>
